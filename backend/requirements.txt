@@ -1,0 +1,58 @@
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+pydantic[email]==2.10.3
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+
+# Auth
+argon2-cffi==23.1.0
+python-jose[cryptography]==3.3.0
+passlib[argon2]==1.7.4
+python-multipart==0.0.20
+
+# Redis & Caching
+redis==5.2.1
+hiredis==3.1.0
+
+# Task queue
+celery==5.4.0
+celery[redis]==5.4.0
+kombu==5.4.2
+
+# HTTP client (for crawler)
+httpx==0.28.1
+httpx[http2]==0.28.1
+
+# Image processing
+Pillow==11.0.0
+
+# Utilities
+python-slugify==8.0.4
+python-dateutil==2.9.0
+email-validator==2.2.0
+itsdangerous==2.2.0
+starlette==0.41.3
+
+# Structured logging
+structlog==24.4.0
+
+# Metrics
+prometheus-client==0.21.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1
+pytest-cov==6.0.0
+factory-boy==3.3.1
+
+# Dev tools
+black==24.10.0
+ruff==0.8.4

@@ -1,0 +1,26 @@
+{
+  "name": "ShopScale — A World Woven in Tradition",
+  "short_name": "ShopScale",
+  "description": "A World Woven in Tradition.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#683B2B",
+  "background_color": "#FDF9F6",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/icons/shopscale.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/shopscale-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

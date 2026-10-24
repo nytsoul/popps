@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# Local logs and tooling output
+*.log
+.cache/
+.vite/
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Local backend/runtime data
+backend/.env
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/uploads/*
+!backend/uploads/.gitkeep
