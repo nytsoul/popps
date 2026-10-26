@@ -245,24 +245,49 @@ export function AdminPerformance() {
   useSim(cache, limiter, bus);
   const [checking, setChecking] = useState(false);
   const [checkedAt, setCheckedAt] = useState(() => new Date());
+  const [backendHealth, setBackendHealth] = useState<Record<string, unknown> | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
   const data = JMETER_SCENARIOS.map((s) => ({ scenario: s.scenario, "Baseline p95": s.baseline.p95Ms, "Optimised p95": s.optimized.p95Ms, "Baseline req/s": s.baseline.throughput, "Optimised req/s": s.optimized.throughput }));
   const stats = bus.stats();
-  const health = [
-    { name: "Storefront API (mock adapter)", ok: true, detail: BACKEND_CONFIGURED ? API_BASE_URL : "In-browser mock transport" },
+  const simulatedHealth = [
+    { name: "Storefront API", ok: true, detail: BACKEND_CONFIGURED ? API_BASE_URL : "In-browser mock transport" },
     { name: "Redis cache (simulated)", ok: !cache.bypass, detail: cache.bypass ? "Bypass mode ON" : `${cache.size} keys` },
     { name: "Rate limiter (simulated)", ok: limiter.enabled, detail: limiter.enabled ? `${limiter.capacity} burst / ${limiter.refillPerSec} rps` : "Disabled" },
     { name: "Kafka consumers (simulated)", ok: stats.every((s) => s.lag < 10), detail: `lag ${stats.reduce((a, s) => a + s.lag, 0)} · DLQ ${stats.find((s) => s.topic === "dlq")?.total ?? 0}` },
-    { name: "Database (PostgreSQL)", ok: BACKEND_CONFIGURED, detail: BACKEND_CONFIGURED ? "Via backend" : "Not connected — local seed data" },
-    { name: "Crawler workers", ok: true, detail: "Simulated queue" },
+    { name: "Database", ok: false, detail: "Not connected — local seed data" },
+    { name: "Crawler workers (simulated)", ok: true, detail: "In-browser queue" },
   ];
+  const realHealth = backendHealth ? [
+    { name: "Database", ok: (backendHealth.database as { status?: string } | undefined)?.status === "ok", detail: String((backendHealth.database as { status?: string } | undefined)?.status ?? "unknown") },
+    { name: "Redis", ok: (backendHealth.redis as { status?: string } | undefined)?.status === "ok", detail: String((backendHealth.redis as { status?: string } | undefined)?.status ?? "unknown") },
+    { name: "Celery workers", ok: (backendHealth.celery as { status?: string } | undefined)?.status === "ok", detail: String((backendHealth.celery as { status?: string } | undefined)?.status ?? "unknown") },
+    { name: "Backend catalogue", ok: true, detail: `${(backendHealth.products as { published?: number } | undefined)?.published ?? 0} published products` },
+  ] : null;
+  const health = realHealth ?? simulatedHealth;
+  const checkHealth = async () => {
+    setChecking(true);
+    setHealthError(null);
+    try {
+      if (BACKEND_CONFIGURED) setBackendHealth(await systemMetricsService.healthSummary());
+      else setBackendHealth(null);
+      setCheckedAt(new Date());
+    } catch (e) {
+      setBackendHealth(null);
+      setHealthError(e instanceof Error ? e.message : "Backend health check failed.");
+      setCheckedAt(new Date());
+    } finally {
+      setChecking(false);
+    }
+  };
   return (
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-3xl text-darkroast">JMeter Reports & System Health</h1>
         <p className="mt-1 text-xs text-mutedbrown">JMeter figures below are illustrative SAMPLE data — not real benchmarks. Replace them by importing summary reports from your own test runs (see docs/jmeter.md).</p>
       </header>
-      <Panel title="System health" subtitle={`Last checked ${checkedAt.toLocaleTimeString()}`} kind="simulated"
-        action={<button onClick={async () => { setChecking(true); await new Promise((r) => setTimeout(r, 600)); setCheckedAt(new Date()); setChecking(false); }} className={btn}>{checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />} Re-check</button>}>
+      <Panel title="System health" subtitle={`Last checked ${checkedAt.toLocaleTimeString()} · ${realHealth ? "backend services" : "browser simulation"}`} kind={realHealth ? "local" : "simulated"}
+        action={<button onClick={checkHealth} className={btn}>{checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />} Re-check</button>}>
+        {healthError && <p role="alert" className="mb-3 border border-error/40 bg-error/5 p-3 text-xs text-error">{healthError}</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {health.map((h) => (
             <div key={h.name} className="flex items-start gap-3 border border-sand p-3">

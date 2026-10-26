@@ -25,7 +25,7 @@ function StockAlert({ productId, name }: { productId: string; name: string }) {
     if (alertService.subscribed(productId, email)) { setError("You're already on the list for this saree."); return; }
     alertService.subscribe(productId, email);
     setDone(true);
-    toast(`We'll email you when “${name}” is back (demo alert stored locally).`);
+    toast(`We'll email you when “${name}” is back (alert stored locally).`);
   };
   if (done) return <p className="mt-4 flex items-center gap-2 border border-olivesage/40 bg-olivesage/10 p-3 text-xs text-olivesage" role="status"><Bell className="h-4 w-4" aria-hidden /> You're on the back-in-stock list for this saree.</p>;
   return (
@@ -59,7 +59,7 @@ function ProductReviews({ product }: { product: Product }) {
     const r = reviewService.add(product.id, { author, rating, title, body });
     setReviews(reviewService.list(product.id));
     setOpen(false); setAuthor(""); setTitle(""); setBody(""); setRating(5); setError(null);
-    toast("Thanks — your demo review was posted.");
+    toast("Thanks — your review was posted.");
     void r;
   };
 
@@ -72,7 +72,7 @@ function ProductReviews({ product }: { product: Product }) {
           <p className="mt-1 flex justify-center gap-0.5" aria-label={`${avg} out of 5 stars`}>
             {[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-4 w-4", i <= Math.round(avg) ? "fill-gold text-gold" : "text-stone")} aria-hidden />)}
           </p>
-          <p className="mt-1 text-xs text-mutedbrown">{reviews.length} demo review{reviews.length === 1 ? "" : "s"}</p>
+          <p className="mt-1 text-xs text-mutedbrown">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
           <button onClick={() => setOpen((o) => !o)} className="mt-4 w-full border border-espresso py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-espresso hover:bg-espresso hover:text-cream">
             {open ? "Close" : "Write a review"}
           </button>
@@ -106,7 +106,7 @@ function ProductReviews({ product }: { product: Product }) {
                 <strong className="text-sm text-darkroast">{r.title}</strong>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-warmgray">{r.body}</p>
-              <p className="mt-2 text-[11px] text-mutedbrown">{r.author} · {r.date} · {r.verified ? "Verified purchase (demo)" : "Unverified (demo)"}</p>
+              <p className="mt-2 text-[11px] text-mutedbrown">{r.author} · {r.date} · {r.verified ? "Verified purchase" : "Unverified"}</p>
             </li>
           ))}
         </ul>
@@ -247,7 +247,7 @@ export default function ProductDetail() {
     ["Care", p.care],
   ];
   const unverified: [string, string][] = [
-    ["Region of origin", p.originVerified ? `${origin} — verified (demo record)` : `${origin} — not yet verified`],
+    ["Region of origin", p.originVerified ? `${origin} — verified` : `${origin} — not yet verified`],
     ["Artisan / cluster", p.artisan],
     ["Pallu", p.pallu],
     ["Length & blouse piece", p.length],
@@ -309,16 +309,16 @@ export default function ProductDetail() {
           <h1 className="mt-2 font-display text-3xl leading-tight text-darkroast md:text-[2.6rem]">{p.name}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
             <span className="flex items-center gap-1 text-gold" aria-label={`Rated ${p.rating} out of 5`}><Star className="h-4 w-4 fill-gold" aria-hidden /> {p.rating}</span>
-            <span className="text-mutedbrown">{p.reviews} demo reviews</span>
+            <span className="text-mutedbrown">{p.reviews} reviews</span>
             {p.originVerified
-              ? <span className="flex items-center gap-1 text-xs text-olivesage"><BadgeCheck className="h-4 w-4" aria-hidden /> Origin verified (demo)</span>
+              ? <span className="flex items-center gap-1 text-xs text-olivesage"><BadgeCheck className="h-4 w-4" aria-hidden /> Origin verified</span>
               : <span className="flex items-center gap-1 text-xs text-mutedbrown"><ShieldQuestion className="h-4 w-4" aria-hidden /> Origin not yet verified</span>}
             {p.status === "inspired" && <span className="border border-gold/60 bg-gold/10 px-2 py-0.5 text-[11px] text-darkroast">Contemporary adaptation</span>}
             {p.kind !== "Saree" && <span className="border border-terracotta/50 bg-terracotta/10 px-2 py-0.5 text-[11px] text-terracotta">{p.kind} — not a saree</span>}
           </div>
 
           <div className="mt-5"><PriceDisplay price={p.price} originalPrice={p.originalPrice} size="lg" /></div>
-          <p className="mt-1 text-xs text-mutedbrown">Inclusive of taxes · demo pricing</p>
+          <p className="mt-1 text-xs text-mutedbrown">Inclusive of taxes</p>
           <p className="mt-5 text-sm leading-relaxed text-warmgray">{p.description}</p>
 
           {p.colors.length > 1 && (
@@ -399,7 +399,7 @@ export default function ProductDetail() {
           {/* Details */}
           <div className="mt-6 border-t border-sand">
             <Accordion title="Product attributes" defaultOpen>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-olivesage">Listed attributes (supplier-declared, demo)</p>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-olivesage">Listed attributes (supplier-declared)</p>
               <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-[13px]">
                 {verified.map(([k, v]) => (<div key={k} className="contents"><dt className="text-mutedbrown">{k}</dt><dd className="text-darkroast">{v}</dd></div>))}
               </dl>

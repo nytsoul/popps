@@ -24,7 +24,7 @@ export function Newsletter() {
     try {
       await newsletterService.subscribe(email);
       setState("ok");
-      setMessage("Thank you — your demo subscription was recorded. Look out for our first note.");
+      setMessage("Thank you — your subscription was recorded. Look out for our first note.");
       setEmail("");
     } catch {
       setState("error");
@@ -276,7 +276,7 @@ export default function Footer() {
                   <MapPin className="h-3.5 w-3.5" aria-hidden /> Get directions
                 </a>
               </div>
-              <p className="text-[11px] text-mutedbrown">Demo locations for this prototype storefront.</p>
+              <p className="text-[11px] text-mutedbrown">Our current locations and weaving partner hubs.</p>
             </div>
           </div>
         </div>
@@ -288,7 +288,7 @@ export default function Footer() {
             <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-mutedbrown">Payments (coming soon)</span>
             {PAYMENTS.map((p) => <span key={p} className="border border-latte/60 bg-ivory px-2.5 py-1 text-[10px] font-semibold tracking-wide text-warmgray">{p}</span>)}
           </div>
-          <p className="text-[11px] text-mutedbrown">Demo storefront — no payments are processed.</p>
+          <p className="text-[11px] text-mutedbrown">Payments are coming soon — no payments are processed yet.</p>
         </div>
       </div>
       <div className="bg-espresso text-champagne">

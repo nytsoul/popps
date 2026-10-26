@@ -371,7 +371,13 @@ for (const v of VARIETIES) {
 export const OFFICIAL_COMPILATION_COUNT = Object.keys(OFFICIAL_ZONE_BY_SLUG).length;
 export const OFFICIAL_ZONES: HandloomZone[] = ["North Zone", "East Zone", "West Zone", "South Zone"];
 export const varietyBySlug = (slug: string) => VARIETIES.find((v) => v.slug === slug);
-export const varietyByName = (name: string) => VARIETIES.find((v) => v.name === name);
+export const varietyByName = (name: string) => {
+  const normalized = name.trim().toLocaleLowerCase();
+  return VARIETIES.find((v) =>
+    v.name.toLocaleLowerCase() === normalized ||
+    v.aliases.some((alias) => alias.toLocaleLowerCase() === normalized)
+  );
+};
 
 /* ------------------------------ Regions ------------------------------ */
 

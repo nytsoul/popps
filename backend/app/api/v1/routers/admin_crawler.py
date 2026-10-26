@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.permissions import require_role, UserRole
 from app.db.session import get_db
-from app.models.crawler import CrawlJob, CrawlSource
+from app.models.crawler import CrawlJob, CrawlResult, CrawlSource
 
 router = APIRouter()
 
@@ -155,3 +155,193 @@ async def admin_add_crawl_source(
     db.add(source)
     db.commit()
     return {"domain": domain, "seed_url": seed_url}
+
+
+@router.get("/admin/crawler/jobs/{job_id}/results")
+async def admin_get_crawler_job_results(
+    job_id: uuid.UUID,
+    token: Annotated[dict, Depends(require_role(UserRole.ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
+    status: str | None = None,
+):
+    """List results discovered by a specific crawl job."""
+    query = db.query(CrawlResult).filter(CrawlResult.job_id == job_id)
+    if status:
+        query = query.filter(CrawlResult.status == status)
+    results = query.order_by(CrawlResult.created_at.desc()).limit(200).all()
+    return [
+        {
+            "id": str(r.id),
+            "job_id": str(r.job_id),
+            "source_url": r.source_url,
+            "title": r.title,
+            "description": r.description,
+            "price_raw": r.price_raw,
+            "image_url": r.image_url,
+            "status": r.status,
+            "imported_product_id": str(r.imported_product_id) if r.imported_product_id else None,
+            "created_at": r.created_at,
+        }
+        for r in results
+    ]
+
+
+@router.post("/admin/crawler/jobs/{job_id}/approve")
+async def admin_approve_crawler_job_results(
+    job_id: uuid.UUID,
+    token: Annotated[dict, Depends(require_role(UserRole.ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
+    count: int | None = None,
+):
+    """Approve pending crawl results for a job."""
+    actor_id = uuid.UUID(token["sub"])
+    job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    query = db.query(CrawlResult).filter(
+        CrawlResult.job_id == job_id,
+        CrawlResult.status == "pending_review",
+    )
+    if count and count > 0:
+        pending_items = query.limit(count).all()
+    else:
+        pending_items = query.all()
+
+    approved_count = len(pending_items)
+    for item in pending_items:
+        item.status = "approved"
+        item.reviewed_by_id = actor_id
+
+    job.pending_review_count = max(0, job.pending_review_count - approved_count)
+    job.imported_count = (job.imported_count or 0) + approved_count
+    db.commit()
+
+    return {
+        "status": "approved",
+        "job_id": str(job_id),
+        "approved_count": approved_count,
+        "remaining_pending": job.pending_review_count,
+    }
+
+
+@router.post("/admin/crawler/jobs/{job_id}/reject")
+async def admin_reject_crawler_job_results(
+    job_id: uuid.UUID,
+    token: Annotated[dict, Depends(require_role(UserRole.ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Reject all pending crawl results for a job."""
+    actor_id = uuid.UUID(token["sub"])
+    job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    pending_items = db.query(CrawlResult).filter(
+        CrawlResult.job_id == job_id,
+        CrawlResult.status == "pending_review",
+    ).all()
+
+    rejected_count = len(pending_items)
+    for item in pending_items:
+        item.status = "rejected"
+        item.reviewed_by_id = actor_id
+
+    job.pending_review_count = 0
+    db.commit()
+
+    return {
+        "status": "rejected",
+        "job_id": str(job_id),
+        "rejected_count": rejected_count,
+    }
+
+
+@router.post("/admin/crawler/results/{result_id}/import")
+async def admin_import_crawler_result(
+    result_id: uuid.UUID,
+    token: Annotated[dict, Depends(require_role(UserRole.ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Import an approved crawl result into the product catalogue as a draft product."""
+    from app.models.product import Inventory, Product, ProductImage
+    import re
+
+    actor_id = uuid.UUID(token["sub"])
+    result = db.query(CrawlResult).filter(CrawlResult.id == result_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Crawl result not found.")
+    if result.status == "imported":
+        raise HTTPException(status_code=400, detail="Result has already been imported.")
+
+    # Parse price
+    price_paise = 2500000  # Default ₹25,000
+    if result.price_raw:
+        numeric = re.sub(r"[^\d.]", "", result.price_raw)
+        if numeric:
+            try:
+                price_paise = int(float(numeric) * 100)
+            except ValueError:
+                pass
+    if price_paise <= 0:
+        price_paise = 100000
+
+    unique_suffix = uuid.uuid4().hex[:8]
+    slug_base = re.sub(r"[^a-z0-9]+", "-", (result.title or "imported-saree").lower()).strip("-")[:180]
+    slug = f"{slug_base}-{unique_suffix}"
+    sku = f"SKU-CRW-{unique_suffix.upper()}"
+
+    product = Product(
+        name=result.title or "Imported Handcrafted Saree",
+        slug=slug,
+        sku=sku,
+        description=result.description or "Imported via web crawler. Pending editorial review.",
+        price_paise=price_paise,
+        publication="draft",
+        created_by_id=actor_id,
+    )
+    db.add(product)
+    db.flush()
+
+    # Create associated inventory
+    inventory = Inventory(
+        product_id=product.id,
+        quantity_available=1,
+        quantity_reserved=0,
+        quantity_committed=0,
+        updated_by_id=actor_id,
+    )
+    db.add(inventory)
+
+    # Create image if URL available
+    if result.image_url:
+        img = ProductImage(
+            product_id=product.id,
+            url=result.image_url,
+            alt_text=product.name,
+            sort_order=0,
+            is_primary=True,
+        )
+        db.add(img)
+
+    result.status = "imported"
+    result.imported_product_id = product.id
+    result.reviewed_by_id = actor_id
+
+    # Update job counter
+    job = db.query(CrawlJob).filter(CrawlJob.id == result.job_id).first()
+    if job:
+        job.imported_count = (job.imported_count or 0) + 1
+        if job.pending_review_count > 0:
+            job.pending_review_count -= 1
+
+    db.commit()
+    db.refresh(product)
+
+    return {
+        "status": "imported",
+        "result_id": str(result.id),
+        "product_id": str(product.id),
+        "sku": product.sku,
+        "slug": product.slug,
+    }

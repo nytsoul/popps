@@ -43,6 +43,17 @@ def client(db):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
+    from app.core.rate_limit import _memory_store
+    _memory_store.clear()
+    try:
+        import redis
+        from app.core.config import settings
+        r = redis.from_url(settings.redis_url, socket_connect_timeout=1)
+        for k in r.scan_iter("ratelimit:testclient:*"):
+            r.delete(k)
+    except Exception:
+        pass
+
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

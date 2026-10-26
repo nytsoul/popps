@@ -30,7 +30,7 @@ export function RegionsPage() {
   const zones = zone === "All" ? ZONES : [zone];
   return (
     <div>
-      <PageHeader crumb="Shop by Region" eyebrow="An Atlas of Weaving" title="Shop by Region" text="Every state and country in our catalogue, with its signature traditions. Counts show demo pieces currently listed; traditions without listings are still catalogued." />
+      <PageHeader crumb="Shop by Region" eyebrow="An Atlas of Weaving" title="Shop by Region" text="Every state and country in our catalogue, with its signature traditions. Counts show pieces currently listed; traditions without listings are still catalogued." />
       <div className="sticky top-[118px] z-20 border-b border-sand bg-cream/95 backdrop-blur lg:top-[150px]">
         <div className="no-scrollbar mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 lg:px-6">
           {(["All", ...ZONES] as const).map((z) => (
@@ -206,7 +206,7 @@ const CURATED = [
   { label: "Bestsellers", text: "Most-loved pieces" }, { label: "New Arrivals", text: "Fresh off the loom" },
   { label: "On Sale", text: "Verified price drops" }, { label: "Premium", text: "Heirloom-grade" },
   { label: "Wedding", text: "Bridal & wedding" }, { label: "Festive", text: "Celebration edit" },
-  { label: "Sustainable", text: "Natural dyes & khadi" }, { label: "Origin Verified", text: "Demo verification records" },
+  { label: "Sustainable", text: "Natural dyes & khadi" }, { label: "Origin Verified", text: "Verified origin records" },
   { label: "Designer", text: "Inspired, contemporary" },
 ];
 

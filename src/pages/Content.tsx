@@ -57,8 +57,8 @@ export function HeritagePage() {
       </section>
       <section id="legal" className="border-t border-sand bg-ivory py-12">
         <div className="mx-auto max-w-3xl px-4 text-xs leading-relaxed text-mutedbrown lg:px-6">
-          <h2 className="font-display text-xl text-darkroast">Privacy, Terms & Prototype Notice</h2>
-          <p className="mt-3">ShopScale is a System Design Laboratory prototype. Cart, wishlist, account and demo orders are stored only in your browser. No real payments are processed and no card information is collected. Prices, stock, ratings, discounts and artisan attributions are sample data. Photography is licensed stock imagery used as representative styling — not proof of a specific product's weave or origin. Model portraits are licensed stock photos chosen for their graceful, traditional look; no celebrity or real person is depicted or endorsed. Full privacy policy and terms will be published before any commercial launch.</p>
+          <h2 className="font-display text-xl text-darkroast">Privacy, Terms & Service Notice</h2>
+          <p className="mt-3">ShopScale is currently running in a limited preview. Cart, wishlist, account and orders are stored only in your browser. No real payments are processed and no card information is collected. Prices, stock, ratings, discounts and artisan attributions are sample data. Photography is licensed stock imagery used as representative styling — not proof of a specific product's weave or origin. Model portraits are licensed stock photos chosen for their graceful, traditional look; no celebrity or real person is depicted or endorsed. Full privacy policy and terms will be published before any commercial launch.</p>
         </div>
       </section>
     </div>
@@ -109,7 +109,7 @@ export function StoriesPage() {
 
 const FAQS = [
   ["How do I know if a saree is pure silk?", "Each product lists its composition — Pure, Blend, Natural Fibre, or Art Silk / Synthetic. We never list art silk as pure silk."],
-  ["What does 'origin not yet verified' mean?", "The regional tradition is shown, but a supplier record confirming the weaving cluster has not yet been attached to this demo listing."],
+  ["What does 'origin not yet verified' mean?", "The regional tradition is shown, but a supplier record confirming the weaving cluster has not yet been attached to this listing."],
   ["Are these real orders?", "No. ShopScale is a prototype: checkout uses a mock adapter, no payment is taken and nothing ships."],
   ["What is a 'related draping tradition'?", "Garments like the Malaysian songket or Myanmar longyi are culturally distinct from sarees. We list them separately and credit their countries of origin."],
   ["How should I care for zari?", "Dry clean only, store folded in muslin away from sunlight, and refold every few months to prevent the metallic threads from cracking."],
@@ -153,7 +153,7 @@ export function ContactPage() {
             <div className="border border-olivesage/40 bg-olivesage/10 p-8 text-center" role="status">
               <CheckCircle2 className="mx-auto h-10 w-10 text-olivesage" aria-hidden />
               <p className="mt-3 font-display text-2xl text-darkroast">Message received</p>
-              <p className="mt-2 text-sm text-warmgray">Demo ticket <strong className="font-mono">{ticket}</strong> was created. In this prototype no email is sent.</p>
+              <p className="mt-2 text-sm text-warmgray">Support ticket <strong className="font-mono">{ticket}</strong> was created. No email is sent yet.</p>
               <button onClick={() => { setState("idle"); setForm({ ...form, message: "" }); }} className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-espresso underline underline-offset-4">Send another</button>
             </div>
           ) : (
@@ -176,8 +176,8 @@ export function ContactPage() {
         <aside className="space-y-6">
           <div className="grid gap-3">
             <a href={`mailto:${STORE_POLICY.supportEmail}`} className="flex items-center gap-3 border border-sand bg-ivory p-4 hover:border-espresso"><Mail className="h-5 w-5 text-mocha" aria-hidden /><span className="text-sm">{STORE_POLICY.supportEmail}</span></a>
-            <a href="tel:+918000000000" className="flex items-center gap-3 border border-sand bg-ivory p-4 hover:border-espresso"><Phone className="h-5 w-5 text-mocha" aria-hidden /><span className="text-sm">{STORE_POLICY.supportPhone} (demo)</span></a>
-            <a href="https://wa.me/918000000000" target="_blank" rel="noreferrer" className="flex items-center gap-3 border border-sand bg-ivory p-4 hover:border-espresso"><MessageCircle className="h-5 w-5 text-olivesage" aria-hidden /><span className="text-sm">WhatsApp (demo number)</span></a>
+            <a href="tel:+918000000000" className="flex items-center gap-3 border border-sand bg-ivory p-4 hover:border-espresso"><Phone className="h-5 w-5 text-mocha" aria-hidden /><span className="text-sm">{STORE_POLICY.supportPhone}</span></a>
+            <a href="https://wa.me/918000000000" target="_blank" rel="noreferrer" className="flex items-center gap-3 border border-sand bg-ivory p-4 hover:border-espresso"><MessageCircle className="h-5 w-5 text-olivesage" aria-hidden /><span className="text-sm">WhatsApp</span></a>
             <Link to="/track" className="flex items-center gap-3 border border-espresso bg-espresso p-4 text-cream hover:bg-mocha"><Package className="h-5 w-5" aria-hidden /><span className="text-sm">Track an order</span></Link>
           </div>
           <div id="services">
@@ -201,7 +201,7 @@ export function ContactPage() {
               ))}
             </div>
           </div>
-          <p className="flex items-center gap-2 text-xs text-mutedbrown"><MapPin className="h-3.5 w-3.5" aria-hidden /> Studio: Indiranagar, Bengaluru (demo location)</p>
+          <p className="flex items-center gap-2 text-xs text-mutedbrown"><MapPin className="h-3.5 w-3.5" aria-hidden /> Studio: Indiranagar, Bengaluru</p>
         </aside>
       </div>
     </div>
@@ -262,7 +262,7 @@ export function TrackOrderPage() {
         <div className="mt-8 border border-sand bg-ivory">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand px-6 py-4">
             <div><p className="font-mono text-espresso">{order.reference}</p><p className="text-xs text-mutedbrown">Placed {shortDate(order.createdAt)} · {inr(order.total)}</p></div>
-            {order.mock && <span className="border border-warning/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-warmgray">Demo order</span>}
+            {order.mock && <span className="border border-warning/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-warmgray">Local order</span>}
           </div>
           <ol className="px-6 py-6" aria-label="Order progress">
             {STEPS.map((s, i) => {
@@ -322,4 +322,3 @@ export function ShortLinkRedirect() {
   }
   return <Navigate to={link.target} replace />;
 }
-

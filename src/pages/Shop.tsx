@@ -96,7 +96,12 @@ export default function Shop({ mode = "shop" }: { mode?: "shop" | "search" }) {
     setError(null);
     try {
       const res = await productService.list({ q: q || undefined, filters, minPrice, maxPrice, sort, page: p, pageSize: PAGE_SIZE });
-      setResult(res);
+      setResult((previous) => {
+        if (p === 1 || !previous) return res;
+        const items = [...previous.items, ...res.items];
+        const uniqueItems = [...new Map(items.map((item) => [item.id, item])).values()];
+        return { ...res, items: uniqueItems };
+      });
       setPage(p);
     } catch (e) {
       const err = e instanceof ApiError ? e : new ApiError({ status: 500, message: "Something went wrong while loading sarees." });
@@ -129,10 +134,11 @@ export default function Shop({ mode = "shop" }: { mode?: "shop" | "search" }) {
   ];
 
   /* Heritage context header */
+  const singleCategory = filters.category?.length === 1 ? filters.category[0] : undefined;
   const singleVariety = filters.variety?.length === 1 ? varietyByName(filters.variety[0]) : undefined;
   const singleState = !singleVariety && filters.state?.length === 1 ? regionByName(filters.state[0]) : undefined;
   const heading = mode === "search" ? (q ? `Results for “${q}”` : "Search")
-    : title ?? singleVariety?.name ?? singleState?.tradition
+    : title ?? singleCategory ?? singleVariety?.name ?? singleState?.tradition
     ?? (filters.occasion?.length === 1 ? occasionLabel(filters.occasion[0]) : undefined)
     ?? (filters.fabric?.length === 1 ? `${filters.fabric[0]} Sarees` : undefined)
     ?? (filters.collection?.length === 1 ? filters.collection[0] : undefined)

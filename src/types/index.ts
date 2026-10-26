@@ -245,7 +245,7 @@ export interface AuditEntry {
 
 /** Filter dimensions — every key maps to an accessor in services/filters.ts */
 export type FilterKey =
-  | "country" | "zone" | "state" | "variety" | "kind" | "fabric" | "composition"
+  | "country" | "zone" | "state" | "category" | "variety" | "kind" | "fabric" | "composition"
   | "weave" | "print" | "embellishment" | "occasion" | "colour" | "loom" | "border"
   | "motif" | "weight" | "availability" | "collection" | "artisan" | "care" | "certification";
 

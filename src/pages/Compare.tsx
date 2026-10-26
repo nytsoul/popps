@@ -81,10 +81,10 @@ export default function ComparePage() {
     row("Motif", (p) => p.motif, products),
     row("Occasion", (p) => p.occasion.join(", "), products),
     row("Weight", (p) => `${p.weight}${p.weightG ? ` · approx. ${p.weightG} g` : ""}`, products),
-    row("Blouse piece", (p) => (p.blousePiece == null ? "To be confirmed" : p.blousePiece ? "Included (unstitched, demo spec)" : "Not included"), products),
+    row("Blouse piece", (p) => (p.blousePiece == null ? "To be confirmed" : p.blousePiece ? "Included (unstitched)" : "Not included"), products),
     row("Care", (p) => p.care, products),
-    row("Certification", (p) => (p.originVerified ? "Origin verified (demo record)" : "Unverified"), products),
-    row("Rating", (p) => (p.rating > 0 ? `${p.rating} ★ (${p.reviews} demo reviews)` : "No ratings yet"), products),
+    row("Certification", (p) => (p.originVerified ? "Origin verified" : "Unverified"), products),
+    row("Rating", (p) => (p.rating > 0 ? `${p.rating} ★ (${p.reviews} reviews)` : "No ratings yet"), products),
     row("Availability", (p) => (p.stock <= 0 ? "Out of stock" : p.stock <= (p.lowStockThreshold ?? 3) ? `Low stock (${p.stock})` : `In stock (${p.stock})`), products),
   ];
 
@@ -174,7 +174,7 @@ export default function ComparePage() {
           </article>
         ))}
       </div>
-      <p className="mt-6 text-[11px] text-mutedbrown">Prices, ratings and stock are demo data. The ✓ marks the lowest price.</p>
+      <p className="mt-6 text-[11px] text-mutedbrown">Prices, ratings and stock may change. The ✓ marks the lowest price.</p>
     </div>
   );
 }

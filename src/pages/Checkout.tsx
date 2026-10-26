@@ -36,8 +36,8 @@ function fieldProps(k: keyof Fields, fields: Fields, errors: Partial<Record<keyo
 }
 
 const SAVED_ADDRESSES: (Fields & { label: string })[] = [
-  { label: "Home (demo)", email: "", fullName: "Asha Iyer", phone: "9876543210", line1: "14 Lakeview Road, Indiranagar", line2: "Near 100 Ft Road", city: "Bengaluru", state: "Karnataka", pincode: "560038" },
-  { label: "Parents (demo)", email: "", fullName: "Lakshmi Iyer", phone: "9845012345", line1: "22 Temple Street, Mylapore", line2: "", city: "Chennai", state: "Tamil Nadu", pincode: "600004" },
+  { label: "Home", email: "", fullName: "Asha Iyer", phone: "9876543210", line1: "14 Lakeview Road, Indiranagar", line2: "Near 100 Ft Road", city: "Bengaluru", state: "Karnataka", pincode: "560038" },
+  { label: "Parents", email: "", fullName: "Lakshmi Iyer", phone: "9845012345", line1: "22 Temple Street, Mylapore", line2: "", city: "Chennai", state: "Tamil Nadu", pincode: "600004" },
 ];
 
 const initial: Fields = { email: "", fullName: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "" };
@@ -143,7 +143,7 @@ export default function Checkout() {
 
       <div className="mt-4 flex items-start gap-3 border border-warning/50 bg-warning/10 p-4 text-xs leading-relaxed text-warmgray">
         <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
-        <p><strong className="text-darkroast">Demo checkout.</strong> This prototype uses a mock order adapter — no real payment is processed, no card details are collected, and orders are stored locally in your browser.</p>
+        <p><strong className="text-darkroast">Checkout preview.</strong> No real payment is processed, no card details are collected, and orders are stored locally in your browser.</p>
       </div>
 
       <form onSubmit={submit} noValidate className="mt-8 grid gap-10 lg:grid-cols-[1fr_380px]">
@@ -243,7 +243,7 @@ export default function Checkout() {
             </p>
           )}
           <button type="submit" disabled={submitting} className="mt-5 flex w-full items-center justify-center gap-2 bg-espresso py-4 text-xs font-semibold uppercase tracking-[0.18em] text-cream transition-colors hover:bg-mocha disabled:opacity-70">
-            {submitting ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Placing demo order…</> : <>Place Demo Order <ArrowRight className="h-4 w-4" aria-hidden /></>}
+            {submitting ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Placing order…</> : <>Place Order <ArrowRight className="h-4 w-4" aria-hidden /></>}
           </button>
           <Link to="/cart" className="mt-3 block text-center text-xs text-mocha underline underline-offset-4">Back to bag</Link>
         </aside>

@@ -95,7 +95,7 @@ function OverviewTab({ user, wishlistCount, orders, go }: { user: { name: string
       </div>
       <div className="mt-6 flex items-center gap-2 border border-sand bg-ivory p-5">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-espresso font-display text-sm text-cream">{user.name[0]?.toUpperCase()}</span>
-        <p className="text-xs text-mutedbrown">Signed in as <strong className="text-darkroast">{user.email}</strong> · Demo profile stored only in this browser.</p>
+        <p className="text-xs text-mutedbrown">Signed in as <strong className="text-darkroast">{user.email}</strong> · Profile stored only in this browser.</p>
       </div>
     </div>
   );
@@ -119,7 +119,7 @@ function ProfileTab({ user, setName }: { user: { name: string; email: string }; 
       if (raw) localStorage.setItem("shopscale.user.v1", JSON.stringify({ ...JSON.parse(raw), name: name.trim() }));
     } catch { /* ignore */ }
     setEditing(false);
-    toast("Profile updated (demo — stored locally).");
+    toast("Profile updated and stored locally.");
   };
 
   return (
@@ -148,7 +148,7 @@ function ProfileTab({ user, setName }: { user: { name: string; email: string }; 
         <dl className="mt-5 space-y-3 text-sm">
           <div className="flex justify-between border-b border-sand/70 pb-3"><dt className="text-mutedbrown">Name</dt><dd className="text-darkroast">{user.name}</dd></div>
           <div className="flex justify-between border-b border-sand/70 pb-3"><dt className="text-mutedbrown">Email</dt><dd className="text-darkroast">{user.email}</dd></div>
-          <div className="flex justify-between"><dt className="text-mutedbrown">Role</dt><dd className="text-darkroast">Customer (demo)</dd></div>
+          <div className="flex justify-between"><dt className="text-mutedbrown">Role</dt><dd className="text-darkroast">Customer</dd></div>
         </dl>
       )}
       <p className="mt-5 text-[11px] leading-relaxed text-mutedbrown">Email verification and password change arrive with real authentication. Customer registration can never grant admin privileges.</p>
@@ -251,7 +251,7 @@ function OrdersTab({ orders, expanded, setExpanded }: { orders: Order[]; expande
   return (
     <div>
       <h2 className="flex items-center gap-2 font-display text-2xl text-darkroast"><Package className="h-5 w-5 text-mocha" aria-hidden /> Order History</h2>
-      <p className="mt-1 text-xs text-mutedbrown">Demo orders are stored locally. Select an order for items, tracking and the event trail.</p>
+      <p className="mt-1 text-xs text-mutedbrown">Orders are stored locally. Select an order for items, tracking and the event trail.</p>
       <ul className="mt-6 space-y-4">
         {orders.map((o) => {
           const open = expanded === o.id;
@@ -264,7 +264,6 @@ function OrdersTab({ orders, expanded, setExpanded }: { orders: Order[]; expande
                   <p className="text-xs text-mutedbrown">{shortDate(o.createdAt)} · {o.items.reduce((a, i) => a + i.quantity, 0)} item(s) · {inr(o.total)}</p>
                 </div>
                 <span className={cn("px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em]", STATUS_STYLE[o.status])}>{o.status}</span>
-                {o.mock && <span className="border border-warning/50 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-warning">Demo</span>}
               </button>
               {open && (
                 <div className="border-t border-sand px-5 py-4">
@@ -329,7 +328,7 @@ function ReturnsTab({ email, orders }: { email: string; orders: Order[] }) {
       const r = returns.create({ orderRef, email, reason, details, orders });
       setList(returns.byEmail(email));
       setFormOpen(false); setDetails(""); setError(null);
-      toast(`Return requested (${r.id}). Our demo support queue has it.`);
+      toast(`Return requested (${r.id}). Our support queue has it.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the request.");
     }
@@ -369,7 +368,7 @@ function ReturnsTab({ email, orders }: { email: string; orders: Order[] }) {
         </form>
       )}
       {list.length === 0 ? (
-        <EmptyState title="No return requests" text="If a saree isn't right, request a return here. Refunds are demo-only in this prototype." actionLabel="Browse Sarees" actionTo="/shop" />
+        <EmptyState title="No return requests" text="If a saree isn't right, request a return here. Refunds are not available yet." actionLabel="Browse Sarees" actionTo="/shop" />
       ) : (
         <ul className="space-y-3">
           {list.map((r) => (

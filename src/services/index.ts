@@ -1,9 +1,18 @@
 import { PRODUCTS, INVENTORY_KEY } from "../data/products";
-import { VARIETIES } from "../data/catalogue";
+import { TECHNIQUE_GROUP, VARIETIES } from "../data/catalogue";
 import { bus, cache, limiter, sleep } from "../lib/sim";
 import type { CartItem, CrawlRun, Order, OrderStatus, Paged, Product, ProductQuery, ShortLink, User } from "../types";
-import { ApiError, BACKEND_CONFIGURED, readStorage, request, storeAccessToken, writeStorage } from "./api";
+import { ApiError, BACKEND_CONFIGURED, normalizePaged, normalizeProduct, readStorage, request, storeAccessToken, writeStorage } from "./api";
 import { didYouMean, matchesQuery, runQuery } from "./filters";
+
+const normalizeSearchText = (value: string) => value.toLocaleLowerCase().trim();
+const startsWithSearchToken = (value: string, query: string) =>
+  normalizeSearchText(value).split(/[\s/&(),.-]+/).some((token) => token.startsWith(query));
+const autocompleteMatches = (value: string, query: string) => {
+  const words = normalizeSearchText(value).split(/[\s/&(),.-]+/).filter(Boolean);
+  const queryWords = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  return queryWords.every((queryWord) => words.some((word) => word.startsWith(queryWord)));
+};
 
 /* ===========================================================================
    Mock transport — mirrors the real backend's behaviour:
@@ -47,12 +56,15 @@ const stableKey = (q: ProductQuery) => JSON.stringify(q, Object.keys(q).sort());
 
 export const productService = {
   async list(q: ProductQuery = {}, client?: string): Promise<Paged<Product>> {
-    if (BACKEND_CONFIGURED) return request(`/products/search`, { method: "POST", body: JSON.stringify(q) });
+    if (BACKEND_CONFIGURED) {
+      const body = { ...q, page_size: q.pageSize, min_price: q.minPrice, max_price: q.maxPrice, include_unpublished: q.includeUnpublished };
+      return request<Record<string, unknown>>(`/products/search`, { method: "POST", body: JSON.stringify(body) }).then(normalizePaged);
+    }
     const res = await mockCall(() => runQuery(PRODUCTS, q), { cacheKey: `list:${stableKey(q)}`, client });
     return { ...res.data, meta: { cache: res.cache, ms: res.ms } };
   },
   async bySlug(slug: string): Promise<Product> {
-    if (BACKEND_CONFIGURED) return request(`/products/${slug}`);
+    if (BACKEND_CONFIGURED) return request<Record<string, unknown>>(`/products/${slug}`).then(normalizeProduct);
     const res = await mockCall(() => PRODUCTS.find((x) => x.slug === slug), { cacheKey: `product:${slug}`, dbMs: [140, 260] });
     if (!res.data) throw new ApiError({ status: 404, message: "This saree could not be found. It may have been removed from the catalogue." });
     return res.data;
@@ -275,13 +287,56 @@ export const searchService = {
     const cached = cache.bypass ? undefined : cache.get<Suggestions>(key);
     if (cached) { cache.record({ at: Date.now(), key, ms: 1, result: "HIT" }); return cached; }
     const lower = t.toLowerCase();
-    const terms = [
-      ...VARIETIES.filter((v) => [v.name, ...v.aliases].some((n) => n.toLowerCase().includes(lower))).slice(0, 4)
+    const rawTerms = [
+      ...VARIETIES.filter((v) => [v.name, ...v.aliases].some((n) => autocompleteMatches(n, lower))).slice(0, 4)
         .map((v) => ({ label: v.name, to: `/shop?variety=${encodeURIComponent(v.name)}`, hint: `${v.state}${v.kind !== "Saree" ? ` · ${v.kind}` : ""}` })),
-      ...[...new Set(VARIETIES.map((v) => v.state))].filter((s) => s.toLowerCase().includes(lower)).slice(0, 2)
+      ...[...new Set(VARIETIES.map((v) => v.state))].filter((s) => autocompleteMatches(s, lower)).slice(0, 2)
         .map((s) => ({ label: s, to: `/shop?state=${encodeURIComponent(s)}`, hint: "Region" })),
+      ...[...new Set(PRODUCTS.map((p) => p.fabric))].filter((f) => autocompleteMatches(f, lower)).slice(0, 2)
+        .map((f) => ({ label: f, to: `/shop?fabric=${encodeURIComponent(f)}`, hint: "Fabric" })),
+      ...[...new Set(PRODUCTS.flatMap((p) => p.techniques))].filter((t) => autocompleteMatches(t, lower)).slice(0, 2)
+        .map((t) => ({
+          label: t,
+          to: `/${TECHNIQUE_GROUP[t] === "Weave" ? "shop?weave" : TECHNIQUE_GROUP[t] === "Print & Dye" ? "shop?print" : "shop?embellishment"}=${encodeURIComponent(t)}`,
+          hint: "Technique",
+        })),
     ];
-    const products = PRODUCTS.filter((p) => matchesQuery(p, t)).slice(0, 5);
+    const productTerms = [
+      ...new Set(PRODUCTS.map((p) => p.variety)),
+      ...new Set(PRODUCTS.map((p) => p.fabric)),
+      ...new Set(PRODUCTS.flatMap((p) => p.techniques)),
+    ]
+      .filter((value) => autocompleteMatches(value, lower))
+      .slice(0, 8)
+      .map((value) => {
+        const product = PRODUCTS.find((p) => p.variety === value);
+        const technique = PRODUCTS.some((p) => p.techniques.includes(value as Product["techniques"][number]));
+        const key = technique ? "weave" : product?.fabric === value ? "fabric" : "variety";
+        return {
+          label: value,
+          to: `/shop?${key}=${encodeURIComponent(value)}`,
+          hint: technique ? "Technique" : key === "fabric" ? "Fabric" : "Saree type",
+        };
+      });
+    const terms = [...rawTerms, ...productTerms]
+      .filter((term, index, list) => list.findIndex((item) => item.to === term.to) === index)
+      .slice(0, 10);
+    const products = PRODUCTS
+      .filter((p) => autocompleteMatches([
+        p.name, p.variety, p.fabric, p.fabricDetail, p.state, p.country,
+        p.description, p.story, p.motif, p.border, ...p.techniques, ...p.tags,
+      ].join(" "), lower) && matchesQuery(p, t))
+      .map((product) => {
+        const name = normalizeSearchText(product.name);
+        const variety = normalizeSearchText(product.variety);
+        const query = normalizeSearchText(t);
+        const score = name.startsWith(query) ? 4 : startsWithSearchToken(product.name, query) ? 3
+          : variety.startsWith(query) ? 2 : 1;
+        return { product, score };
+      })
+      .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name))
+      .slice(0, 8)
+      .map(({ product }) => product);
     const result: Suggestions = { products, terms, didYouMean: !products.length && !terms.length ? didYouMean(t) : undefined };
     if (!cache.bypass) cache.set(key, result);
     cache.record({ at: Date.now(), key, ms: 3, result: cache.bypass ? "BYPASS" : "MISS" });
@@ -366,6 +421,17 @@ const BLOCKED_HOSTS = ["private", "no-crawl", "members"];
 export const crawlerService = {
   runs: (): CrawlRun[] => readStorage<CrawlRun[]>(CRAWLS_KEY, []),
   save: (runs: CrawlRun[]) => writeStorage(CRAWLS_KEY, runs),
+  async list(): Promise<CrawlRun[]> {
+    if (!BACKEND_CONFIGURED) return this.runs();
+    const jobs = await request<Array<Record<string, unknown>>>("/admin/crawler/jobs");
+    return jobs.map((job) => ({
+      id: String(job.id), seed: String(job.seed_url ?? ""), startedAt: String(job.started_at ?? job.created_at ?? ""),
+      status: String(job.status ?? "queued") as CrawlRun["status"], robotsAllowed: Boolean(job.robots_allowed),
+      discovered: Number(job.discovered_count ?? 0), processed: Number(job.processed_count ?? 0),
+      failed: Number(job.failed_count ?? 0), duplicates: Number(job.duplicate_count ?? 0),
+      pendingReview: Number(job.pending_review_count ?? 0), imported: Number(job.imported_count ?? 0),
+    }));
+  },
   /** Simulated robots.txt check — hosts containing blocked words disallow crawling. */
   async checkRobots(seed: string) {
     await sleep(500);
@@ -373,7 +439,10 @@ export const crawlerService = {
     return !BLOCKED_HOSTS.some((b) => host.includes(b));
   },
   async start(seed: string): Promise<CrawlRun> {
-    if (BACKEND_CONFIGURED) return request("/crawler/jobs", { method: "POST", body: JSON.stringify({ seed }) });
+    if (BACKEND_CONFIGURED) {
+      const raw = await request<{ id: string; status: CrawlRun["status"] }>("/admin/crawler/jobs", { method: "POST", body: JSON.stringify({ seed_url: seed }) });
+      return { id: raw.id, seed, startedAt: new Date().toISOString(), status: raw.status, robotsAllowed: true, discovered: 0, processed: 0, failed: 0, duplicates: 0, pendingReview: 0, imported: 0 };
+    }
     const allowed = await this.checkRobots(seed);
     const run: CrawlRun = {
       id: `c-${Date.now()}`, seed, startedAt: new Date().toISOString(),
@@ -401,12 +470,25 @@ export const crawlerService = {
     this.save(runs);
     return runs;
   },
-  approve(id: string, count: number) {
+  async approve(id: string, count: number): Promise<CrawlRun[]> {
+    if (BACKEND_CONFIGURED) {
+      await request(`/admin/crawler/jobs/${encodeURIComponent(id)}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ count }),
+      });
+      return this.list();
+    }
     const runs = this.runs().map((r) => r.id === id ? { ...r, pendingReview: Math.max(0, r.pendingReview - count), imported: r.imported + count } : r);
     this.save(runs);
     return runs;
   },
-  reject(id: string) {
+  async reject(id: string): Promise<CrawlRun[]> {
+    if (BACKEND_CONFIGURED) {
+      await request(`/admin/crawler/jobs/${encodeURIComponent(id)}/reject`, {
+        method: "POST",
+      });
+      return this.list();
+    }
     const runs = this.runs().map((r) => r.id === id ? { ...r, pendingReview: 0 } : r);
     this.save(runs);
     return runs;
@@ -417,6 +499,10 @@ export const crawlerService = {
 
 export const systemMetricsService = {
   cache, limiter, bus,
+  async healthSummary(): Promise<Record<string, unknown>> {
+    if (!BACKEND_CONFIGURED) return {};
+    return request<Record<string, unknown>>("/admin/monitoring/summary");
+  },
   /** Run N list requests against the mock API (lab experiment helper). */
   async experiment(n: number, bypass: boolean) {
     const prev = cache.bypass;

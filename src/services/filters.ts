@@ -18,6 +18,7 @@ export const FILTER_DEFS: FilterDef[] = [
   { key: "zone", label: "Region", section: "Origin", get: (p) => [p.zone], order: ZONES },
   { key: "state", label: "State / Region", section: "Origin", get: (p) => [p.state] },
   { key: "kind", label: "Garment Type", section: "Saree", get: (p) => [p.kind], order: ["Saree", "Ensemble", "Related Drape"] },
+  { key: "category", label: "Category", section: "Saree", get: (p) => [p.category] },
   { key: "variety", label: "Saree Type", section: "Saree", get: (p) => [p.variety] },
   { key: "fabric", label: "Fabric", section: "Saree", get: (p) => [p.fabric], order: FABRICS.map((f) => f.name) },
   { key: "composition", label: "Composition", section: "Saree", get: (p) => [p.composition], order: ["Pure", "Blend", "Natural Fibre", "Art Silk / Synthetic"] },

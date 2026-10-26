@@ -68,7 +68,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
       <div className="mt-3 space-y-1">
         <p className="flex items-center gap-1 text-[10.5px] uppercase tracking-[0.14em] text-mutedbrown">
           <span className="truncate">{product.variety} · {origin}</span>
-          {product.originVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-olivesage" aria-label="Origin verified (demo record)" />}
+          {product.originVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-olivesage" aria-label="Origin verified" />}
         </p>
         <Link to={`/product/${product.slug}`} className="block">
           <h3 className="font-display text-[15.5px] leading-snug text-darkroast transition-colors group-hover:text-espresso">{product.name}</h3>

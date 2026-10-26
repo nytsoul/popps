@@ -11,7 +11,7 @@ export default function OrderConfirmation() {
   if (!order) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20">
-        <EmptyState title="Order not found" text="We couldn't find that order reference in this browser. Demo orders are stored locally." actionLabel="Back to Shop" actionTo="/shop" />
+        <EmptyState title="Order not found" text="We couldn't find that order reference in this browser. Orders are stored locally." actionLabel="Back to Shop" actionTo="/shop" />
       </div>
     );
   }
@@ -23,14 +23,14 @@ export default function OrderConfirmation() {
           <CheckCircle2 className="h-8 w-8" aria-hidden />
         </span>
         <h1 className="mt-5 font-display text-4xl text-darkroast">Thank you, {order.address.fullName.split(" ")[0]}.</h1>
-        <p className="mt-3 text-sm text-warmgray">Your demo order has been recorded. A confirmation would be emailed to <strong className="text-darkroast">{order.email}</strong> once the backend is live.</p>
+        <p className="mt-3 text-sm text-warmgray">Your order has been recorded. A confirmation would be emailed to <strong className="text-darkroast">{order.email}</strong> once email service is available.</p>
         <p className="mt-4 inline-block border border-sand bg-ivory px-5 py-2.5 font-mono text-sm tracking-wider text-espresso">{order.reference}</p>
       </div>
 
       {order.mock && (
         <p className="mt-6 flex items-start gap-2 border border-warning/50 bg-warning/10 p-3.5 text-xs text-warmgray">
           <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
-          This is a mock order created by the demo checkout adapter. No payment was taken and nothing will ship.
+          This order was created locally. No payment was taken and nothing will ship.
         </p>
       )}
 

@@ -10,7 +10,7 @@ from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.session import get_db
-from app.models.product import Inventory, Product, ProductImage
+from app.models.product import Inventory, Product, ProductImage, Region, Variety
 from app.schemas.product import (
     FacetCount,
     PagedProducts,
@@ -221,6 +221,15 @@ async def search_products(
         if key in col_map:
             col = col_map[key]
             query = query.filter(or_(*[col.ilike(f"%{v}%") for v in values]))
+        elif key in ("category", "variety"):
+            query = query.join(Product.variety_rel).filter(
+                or_(*[Variety.name.ilike(v) for v in values])
+            )
+        elif key in ("state", "zone", "country"):
+            region_column = Region.name if key == "state" else getattr(Region, key)
+            query = query.join(Product.region_rel).filter(
+                or_(*[region_column.ilike(v) for v in values])
+            )
         elif key in ("occasion", "colour", "weave", "collection"):
             json_col_map = {
                 "occasion": Product.occasions_json,

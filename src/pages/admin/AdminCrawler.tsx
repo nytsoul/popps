@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../hooks/useStore";
 import { shortDate } from "../../lib/format";
 import { crawlerService } from "../../services";
+import { BACKEND_CONFIGURED } from "../../services/api";
 import type { CrawlRun } from "../../types";
 import { cn } from "../../utils/cn";
 import { Panel, Stat, btn, btnSolid } from "./AdminLayout";
@@ -21,8 +22,18 @@ export default function AdminCrawler() {
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!BACKEND_CONFIGURED) return;
+    void crawlerService.list().then(setRuns).catch(() => toast("Could not load crawler jobs.", "error"));
+  }, [toast]);
+
+  useEffect(() => {
     const running = runs.some((r) => r.status === "running");
-    if (running && !timer.current) timer.current = window.setInterval(() => setRuns(crawlerService.tick()), 1500);
+    if (running && !timer.current) {
+      timer.current = window.setInterval(() => {
+        if (BACKEND_CONFIGURED) void crawlerService.list().then(setRuns);
+        else setRuns(crawlerService.tick());
+      }, 1500);
+    }
     if (!running && timer.current) { window.clearInterval(timer.current); timer.current = null; }
   }, [runs]);
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
@@ -31,10 +42,16 @@ export default function AdminCrawler() {
     try { const u = new URL(seed); if (!/^https?:$/.test(u.protocol)) throw new Error(); }
     catch { setErr("Enter a valid http(s) seed URL, e.g. https://partner-weaves.example/catalog"); return; }
     setErr(null); setStarting(true);
-    const run = await crawlerService.start(seed.trim());
-    setRuns(crawlerService.runs());
-    toast(run.robotsAllowed ? "robots.txt allows crawling — job started." : "Blocked: robots.txt disallows this site. No pages were fetched.", run.robotsAllowed ? "success" : "error");
-    setSeed(""); setStarting(false);
+    try {
+      const run = await crawlerService.start(seed.trim());
+      setRuns(BACKEND_CONFIGURED ? await crawlerService.list() : crawlerService.runs());
+      toast(run.robotsAllowed ? "Crawl job accepted. robots.txt will be checked by the crawler." : "Blocked: robots.txt disallows this site. No pages were fetched.", run.robotsAllowed ? "success" : "error");
+      setSeed("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not start the crawl job.");
+    } finally {
+      setStarting(false);
+    }
   };
 
   const totals = runs.reduce((a, r) => ({ d: a.d + r.discovered, p: a.p + r.processed, f: a.f + r.failed, dup: a.dup + r.duplicates, rev: a.rev + r.pendingReview, imp: a.imp + r.imported }), { d: 0, p: 0, f: 0, dup: 0, rev: 0, imp: 0 });
@@ -45,7 +62,7 @@ export default function AdminCrawler() {
         <h1 className="font-display text-3xl text-darkroast">Web Crawler</h1>
         <p className="mt-1 text-xs text-mutedbrown">Crawl approved public partner pages only. The crawler checks robots.txt, throttles its request rate, deduplicates URLs and products, and queues extracted items for manual review. Protected images and copyrighted descriptions are never imported without permission.</p>
       </header>
-      <Panel title="Start a crawl job" subtitle='Simulated. Try a host containing "private" to see a robots.txt block.'>
+      <Panel title="Start a crawl job" subtitle={BACKEND_CONFIGURED ? "Backend crawler: approved domains, SSRF checks, robots.txt, and worker status are enforced by the API." : 'Browser simulation. Try a host containing "private" to see a robots.txt block.'}>
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
             <input value={seed} onChange={(e) => { setSeed(e.target.value); setErr(null); }} placeholder="https://partner-weaves.example/catalog" aria-label="Seed URL" aria-invalid={!!err}
@@ -92,8 +109,8 @@ export default function AdminCrawler() {
                   <td className="whitespace-nowrap">
                     {r.pendingReview > 0 && r.status !== "running" ? (
                       <span className="flex gap-1.5">
-                        <button onClick={() => { setRuns(crawlerService.approve(r.id, r.pendingReview)); toast(`Approved ${r.pendingReview} items for import (metadata only).`); }} className={btn}><Check className="h-3 w-3" aria-hidden /> Approve</button>
-                        <button onClick={() => { setRuns(crawlerService.reject(r.id)); toast("Review queue cleared.", "info"); }} className={btn}><X className="h-3 w-3" aria-hidden /> Reject</button>
+                        <button onClick={async () => { setRuns(await crawlerService.approve(r.id, r.pendingReview)); toast(`Approved ${r.pendingReview} items for import (metadata only).`); }} className={btn}><Check className="h-3 w-3" aria-hidden /> Approve</button>
+                        <button onClick={async () => { setRuns(await crawlerService.reject(r.id)); toast("Review queue cleared.", "info"); }} className={btn}><X className="h-3 w-3" aria-hidden /> Reject</button>
                       </span>
                     ) : <span className="text-mutedbrown">—</span>}
                   </td>

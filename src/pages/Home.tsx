@@ -47,7 +47,7 @@ export default function Home() {
   const services = [
     STORE_POLICY.freeShippingThreshold && { icon: Truck, title: "Shipping", text: `Free shipping above ${inr(STORE_POLICY.freeShippingThreshold)}; a flat ${inr(STORE_POLICY.flatShipping)} applies below.` },
     STORE_POLICY.returnWindowDays && { icon: RotateCcw, title: "Returns", text: `${STORE_POLICY.returnWindowDays}-day returns on unworn pieces with tags intact.` },
-    { icon: Lock, title: "Secure Checkout", text: "Demo checkout — no card details are collected until a payment provider is integrated." },
+    { icon: Lock, title: "Secure Checkout", text: "No card details are collected until a payment provider is integrated." },
     { icon: MapPin, title: "Order Tracking", text: "Track every order by reference and email, step by step." },
     { icon: Headphones, title: "Care & Support", text: "Product-specific care guides and a human support team." },
   ].filter(Boolean) as { icon: typeof Truck; title: string; text: string }[];
@@ -75,7 +75,7 @@ export default function Home() {
               </Link>
             </div>
             <dl className="mt-10 flex gap-8 border-t border-sand pt-6 sm:gap-12">
-              {[[`${VARIETIES.length}+`, "Traditions catalogued"], [String(new Set(VARIETIES.map((v) => v.state)).size), "States & countries"], [String(productService.all().length), "Demo pieces"]].map(([v, l]) => (
+              {[[`${VARIETIES.length}+`, "Traditions catalogued"], [String(new Set(VARIETIES.map((v) => v.state)).size), "States & countries"], [String(productService.all().length), "Pieces available"]].map(([v, l]) => (
                 <div key={l}>
                   <dt className="sr-only">{l}</dt>
                   <dd className="font-display text-2xl text-espresso">{v}</dd>
@@ -172,7 +172,7 @@ export default function Home() {
             <Link to={tab === "bestsellers" ? "/shop?collection=Bestsellers" : "/shop?sort=newest"} className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso hover:text-terracotta">View all →</Link>
           </div>
           {limited != null ? <RateLimitNotice retryAfter={limited} onRetry={() => load(tab)} /> : <ProductGrid products={items} loading={loading} />}
-          <p className="mt-6 text-[11px] text-mutedbrown">Prices, discounts and availability shown are demo data.</p>
+          <p className="mt-6 text-[11px] text-mutedbrown">Prices, discounts and availability are subject to change.</p>
         </div>
       </section>
 
@@ -288,7 +288,7 @@ export default function Home() {
       {/* REVIEWS */}
       <section className="bg-cream py-16 md:py-20" aria-label="Customer reviews">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <SectionTitle title="Loved Across India" subtitle="Demo reviews from shoppers — clearly labelled until real reviews arrive." />
+          <SectionTitle title="Loved Across India" subtitle="Stories from shoppers who wear our collections." />
           <div className="grid gap-5 md:grid-cols-3">
             {TESTIMONIALS.map((t, i) => {
               const avg = reviewService.average(t.productId).avg;
@@ -304,7 +304,7 @@ export default function Home() {
                         </span>
                       </p>
                       <Link to={`/product/${t.slug}`} className="mt-1 block text-xs text-mocha hover:text-espresso">wore the {t.product} · {avg > 0 ? `${avg}★ average` : ""}</Link>
-                      <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-mutedbrown">Demo review</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-mutedbrown">Customer review</p>
                     </figcaption>
                   </figure>
                 </Reveal>

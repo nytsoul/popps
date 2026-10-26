@@ -54,6 +54,26 @@ const LOOMS = [IMG.loom, IMG.handLoom, IMG.weaving, IMG.threads, IMG.loom2];
 
 const SILKY: FabricFamily[] = ["Silk", "Tussar", "Muga", "Eri", "Organza", "Tissue"];
 
+function inferredFabric(label: string): FabricFamily | undefined {
+  const value = label.toLocaleLowerCase();
+  const matches: [string, FabricFamily][] = [
+    ["silk-cotton", "Silk-Cotton"], ["tussar", "Tussar"], ["georgette", "Georgette"], ["chiffon", "Chiffon"],
+    ["organza", "Organza"], ["linen", "Linen"], ["khadi", "Khadi"],
+    ["cotton", "Cotton"], ["crepe", "Crepe"],
+    ["art silk", "Blended"], ["synthetic", "Blended"],
+  ];
+  return matches.find(([text]) => value.includes(text))?.[1];
+}
+
+function inferredTechniques(label: string, fallback: Technique[]): Technique[] {
+  const value = label.toLocaleLowerCase();
+  if (value.includes("ikat")) return ["Ikat"];
+  if (value.includes("jamdani")) return ["Jamdani"];
+  if (value.includes("bandhani")) return ["Bandhani"];
+  if (value.includes("kalamkari")) return ["Kalamkari"];
+  return fallback;
+}
+
 const CARE_TEXT: Record<CareType, string> = {
   "Dry clean": "Dry clean only. Store folded in a muslin cloth away from direct sunlight; refold every few months to protect zari and creases.",
   "Hand wash": "Hand wash separately in cold water with a mild detergent. Dry in shade. Iron on medium heat on the reverse.",
@@ -80,10 +100,11 @@ function build(seed: Seed, idx: number): Product {
     status: "inspired" as const, fabrics: ["Silk" as const], techniques: ["Handloom" as const],
     occasions: ["Everyday" as const], blurb: "Contemporary or unverified saree awaiting provenance check."
   };
+  const displayVariety = v.name === "Unverified Saree" && seed.v !== "Unverified Saree" ? seed.v : v.name;
   const id = `p${String(idx + 1).padStart(3, "0")}`;
   const h = hash(seed.n);
-  const fabric = seed.f ?? v.fabrics[0] ?? "Silk";
-  const techniques = seed.tech ?? v.techniques ?? ["Handloom"];
+  const fabric = seed.f ?? inferredFabric(seed.v) ?? v.fabrics[0] ?? "Silk";
+  const techniques = inferredTechniques(seed.v, seed.tech ?? v.techniques ?? ["Handloom"]);
   const composition: Composition =
     seed.comp ?? (["Cotton", "Linen", "Khadi"].includes(fabric) ? "Natural Fibre"
       : fabric === "Silk-Cotton" || fabric === "Blended" ? "Blend"
@@ -108,7 +129,7 @@ function build(seed: Seed, idx: number): Product {
   const collections = [...new Set([...(seed.col ?? []), ...(v.status === "inspired" ? ["Designer"] : [])])];
   return {
     id, slug: slugify(seed.n), name: seed.n,
-    variety: v.name, varietySlug: v.slug, category: v.name,
+    variety: displayVariety, varietySlug: v.name === displayVariety ? v.slug : slugify(displayVariety), category: displayVariety,
     state: v.state, country: v.country, zone: v.zone, kind: v.kind, status: v.status,
     fabric, fabricDetail, composition, loom, techniques, occasion: occasions,
     colours: seed.c,
@@ -139,7 +160,7 @@ function build(seed: Seed, idx: number): Product {
     createdAt,
     bestseller: !!seed.bs,
     isNew,
-    tags: [v.name, ...v.aliases, v.state, v.country, fabric, ...techniques, ...occasions, ...seed.c, seed.motif ?? "", ...collections].filter(Boolean),
+    tags: [displayVariety, v.name, ...v.aliases, v.state, v.country, fabric, ...techniques, ...occasions, ...seed.c, seed.motif ?? "", ...collections].filter(Boolean),
   };
 }
 

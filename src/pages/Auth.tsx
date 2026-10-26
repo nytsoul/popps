@@ -20,9 +20,9 @@ function GoogleButton() {
   return (
     <button
       type="button"
-      onClick={() => toast("Google sign-in is a visual placeholder in this prototype — please use email sign-in for the demo.", "info")}
+      onClick={() => toast("Google sign-in is not available yet — please use email sign-in.", "info")}
       className="flex w-full items-center justify-center gap-2.5 border border-sand bg-white py-3 text-sm text-darkroast transition-colors hover:border-mocha"
-      aria-label="Continue with Google (demo placeholder)"
+      aria-label="Continue with Google"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
         <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c0 1.1-.8 2.7-2.4 3.8l-.1.3 3.4 2.6.2.1c2.1-1.9 3.9-4.8 3.9-9z" />
@@ -31,7 +31,6 @@ function GoogleButton() {
         <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.4 0 3.5 2.7 1.6 6.6l3.6 2.8c1-2.8 3.7-4.7 6.8-4.7z" />
       </svg>
       Continue with Google
-      <span className="border border-warning/50 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-warning">Demo</span>
     </button>
   );
 }
@@ -112,7 +111,7 @@ export default function Auth({ mode: initial, forgot = false }: { mode: "signin"
             {isRegister
               ? "Save sarees to your wishlist, track orders and check out faster."
               : isForgot
-                ? "Enter your account email and we'll send a demo reset link."
+                ? "Enter your account email and we'll send a reset link."
                 : "Continue discovering timeless sarees and beautiful traditions."}
           </p>
         </div>
@@ -125,13 +124,13 @@ export default function Auth({ mode: initial, forgot = false }: { mode: "signin"
           {isRegister ? "Create your account" : isForgot ? "Forgot password" : "Welcome Back"}
         </h1>
         <p className="mt-2 text-xs leading-relaxed text-mutedbrown">
-          Demo authentication — accounts live only in this browser. Any email with a 6+ character password works. No real credentials are verified.
+          Accounts are stored only in this browser. Any email with a 6+ character password works. No external credentials are verified.
         </p>
 
         {isForgot && resetSent ? (
           <div className="mt-7 border border-olivesage/40 bg-olivesage/10 p-6 text-center" role="status">
             <CheckCircle2 className="mx-auto h-9 w-9 text-olivesage" aria-hidden />
-            <p className="mt-3 font-display text-xl text-darkroast">Reset link sent (demo)</p>
+            <p className="mt-3 font-display text-xl text-darkroast">Reset link sent</p>
             <p className="mt-2 text-sm text-warmgray">
               If <strong>{email}</strong> had an account, a reset email would arrive shortly. In this prototype no email is sent.
             </p>
@@ -185,14 +184,14 @@ export default function Auth({ mode: initial, forgot = false }: { mode: "signin"
             {!isForgot && (
               <label className="flex cursor-pointer items-center gap-2.5 text-sm text-warmgray">
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-espresso" />
-                Remember me on this device {remember ? "" : <span className="text-[11px] text-mutedbrown">(demo — sessions always persist locally)</span>}
+                Remember me on this device {remember ? "" : <span className="text-[11px] text-mutedbrown">(sessions persist locally)</span>}
               </label>
             )}
             {isRegister && (
               <div>
                 <label className="flex cursor-start items-start gap-2.5 text-xs leading-relaxed text-warmgray">
                   <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-espresso" aria-invalid={!!errors.terms} />
-                  <span>I accept the <Link to="/heritage#legal" className="text-espresso underline underline-offset-2">Terms of Service</Link> and <Link to="/heritage#legal" className="text-espresso underline underline-offset-2">Privacy Policy</Link> (demo).</span>
+                  <span>I accept the <Link to="/heritage#legal" className="text-espresso underline underline-offset-2">Terms of Service</Link> and <Link to="/heritage#legal" className="text-espresso underline underline-offset-2">Privacy Policy</Link>.</span>
                 </label>
                 {errors.terms && <p className="mt-1 text-xs text-error">{errors.terms}</p>}
               </div>
