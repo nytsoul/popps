@@ -255,18 +255,18 @@ def main():
     print("Downloading dataset from Hugging Face...")
     print("=" * 70)
 
-    base = "https://huggingface.co/datasets/Harshtherocking/indian-fashion-ecommerce/resolve/main/data/"
-    splits = ["test", "validation", "train"]
-
     all_dfs = []
-    for split in splits:
-        url = f"{base}{split}-00000-of-00001.parquet"
-        print(f"Loading {split} split from {url}...")
-        df = pd.read_parquet(url)
+    local_files = [f for f in ["test_data.parquet", "val_data.parquet", "train_data.parquet"] if os.path.exists(f)]
+    for f in local_files:
+        print(f"Loading local parquet file {f}...")
+        df = pd.read_parquet(f)
         sarees = df[df["class_label"] == "saree"].copy()
-        sarees["split"] = split
-        print(f"  -> Found {len(sarees)} sarees in {split}")
+        sarees["split"] = f
+        print(f"  -> Found {len(sarees)} sarees in {f}")
         all_dfs.append(sarees)
+
+    if not all_dfs:
+        raise RuntimeError("No parquet files found locally!")
 
     combined = pd.concat(all_dfs, ignore_index=True)
     print(f"Total raw saree rows: {len(combined)}")

@@ -67,7 +67,15 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID", "Retry-After"],
+        expose_headers=["X-Request-ID", "Retry-After", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+    )
+
+    # ── Rate Limiting Middleware ──────────────────────────────────────────────
+    from app.core.rate_limit import RateLimitMiddleware
+    app.add_middleware(
+        RateLimitMiddleware,
+        default_rate=settings.rate_limit_default,
+        auth_rate=settings.rate_limit_auth,
     )
 
     # ── Request timing middleware ─────────────────────────────────────────────

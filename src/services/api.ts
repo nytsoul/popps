@@ -9,6 +9,20 @@ export const API_BASE_URL: string =
   (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
 
 export const BACKEND_CONFIGURED = API_BASE_URL.length > 0;
+const ACCESS_TOKEN_KEY = "ss_access_token";
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function authHeaders(): Record<string, string> {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function storeAccessToken(token: string): void {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
 
 export class ApiError extends Error {
   status: number;
@@ -22,7 +36,7 @@ export class ApiError extends Error {
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) },
     ...init,
   });
   if (res.status === 429) {
@@ -34,8 +48,13 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
   }
   if (!res.ok) {
-    throw new ApiError({ status: res.status, message: `Request failed (${res.status}). Please try again.` });
+    const body = await res.json().catch(() => null) as { detail?: string } | null;
+    throw new ApiError({
+      status: res.status,
+      message: body?.detail ?? `Request failed (${res.status}). Please try again.`,
+    });
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 

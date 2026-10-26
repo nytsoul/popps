@@ -35,7 +35,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, btn, btnSolid } from "./AdminLayout";
 import { cn } from "../../utils/cn";
 
-const API = "/api/v1";
+import { API_BASE_URL } from "../../services/api";
+
+const API = API_BASE_URL.endsWith("/api/v1") || API_BASE_URL.endsWith("/api/v1/")
+  ? API_BASE_URL.replace(/\/$/, "")
+  : `${API_BASE_URL.replace(/\/$/, "")}/api/v1`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -32,6 +32,11 @@ httpx[http2]==0.28.1
 
 # Image processing
 Pillow==11.0.0
+beautifulsoup4==4.12.3
+
+# Dataset import
+pandas==2.2.3
+pyarrow==18.1.0
 
 # Utilities
 python-slugify==8.0.4

@@ -2,7 +2,7 @@ import { PRODUCTS, INVENTORY_KEY } from "../data/products";
 import { VARIETIES } from "../data/catalogue";
 import { bus, cache, limiter, sleep } from "../lib/sim";
 import type { CartItem, CrawlRun, Order, OrderStatus, Paged, Product, ProductQuery, ShortLink, User } from "../types";
-import { ApiError, BACKEND_CONFIGURED, readStorage, request, writeStorage } from "./api";
+import { ApiError, BACKEND_CONFIGURED, readStorage, request, storeAccessToken, writeStorage } from "./api";
 import { didYouMean, matchesQuery, runQuery } from "./filters";
 
 /* ===========================================================================
@@ -103,7 +103,13 @@ export const DEMO_ADMIN = { email: "admin@shopscale.dev", password: "admin123" }
 export const authService = {
   current: (): User | null => readStorage<User | null>(USER_KEY, null),
   async signIn(email: string, password: string): Promise<User> {
-    if (BACKEND_CONFIGURED) return request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    if (BACKEND_CONFIGURED) {
+      const token = await request<{ access_token: string }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+      storeAccessToken(token.access_token);
+      const user: User = { id: "authenticated", name: email.split("@")[0], email, role: "customer" };
+      writeStorage(USER_KEY, user);
+      return user;
+    }
     await mockCall(() => null, { dbMs: [400, 600] });
     if (password.length < 6) throw new ApiError({ status: 401, message: "Invalid credentials. Password must be at least 6 characters." });
     const user: User = { id: "u-demo", name: email.split("@")[0].replace(/^\w/, (c) => c.toUpperCase()), email, role: "customer" };
@@ -111,7 +117,13 @@ export const authService = {
     return user;
   },
   async register(name: string, email: string, password: string): Promise<User> {
-    if (BACKEND_CONFIGURED) return request("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+    if (BACKEND_CONFIGURED) {
+      const token = await request<{ access_token: string }>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+      storeAccessToken(token.access_token);
+      const user: User = { id: "authenticated", name, email, role: "customer" };
+      writeStorage(USER_KEY, user);
+      return user;
+    }
     await mockCall(() => null, { dbMs: [400, 600] });
     if (password.length < 6) throw new ApiError({ status: 400, message: "Password must be at least 6 characters." });
     const user: User = { id: "u-demo", name, email, role: "customer" };
@@ -124,16 +136,31 @@ export const authService = {
     await mockCall(() => null, { dbMs: [500, 800] });
     return { ok: true };
   },
-  signOut() { localStorage.removeItem(USER_KEY); },
+  signOut() {
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("ss_access_token");
+  },
   isAdmin: () => readStorage<boolean>(ADMIN_KEY, false),
   async adminSignIn(email: string, password: string) {
+    if (BACKEND_CONFIGURED) {
+      const token = await request<{ access_token: string }>("/auth/admin/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      storeAccessToken(token.access_token);
+      writeStorage(ADMIN_KEY, true);
+      return;
+    }
     await sleep(500);
     if (email.trim().toLowerCase() !== DEMO_ADMIN.email || password !== DEMO_ADMIN.password) {
       throw new ApiError({ status: 401, message: "Invalid admin credentials." });
     }
     writeStorage(ADMIN_KEY, true);
   },
-  adminSignOut() { localStorage.removeItem(ADMIN_KEY); },
+  adminSignOut() {
+    localStorage.removeItem(ADMIN_KEY);
+    localStorage.removeItem("ss_access_token");
+  },
 };
 
 /* ---------------------------------- orders --------------------------------- */

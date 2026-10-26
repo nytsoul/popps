@@ -26,7 +26,7 @@ def bootstrap_admin():
     email = settings.bootstrap_admin_email
     password = settings.bootstrap_admin_password
 
-    if not email or not password or password == "change-me":
+    if not email or not password:
         print("ERROR: Set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD in .env first.")
         sys.exit(1)
 
