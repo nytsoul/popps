@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@neon/config": "^1.9.4",
+    "@neon/env": "^1.6.5",
     "clsx": "2.1.1",
     "framer-motion": "^14.6.0",
     "lucide-react": "^1.61.0",

@@ -1,0 +1,580 @@
+SHOP SCALE - PROJECT PRESENTATION TALK
+======================================
+
+Use this as a friendly explanation and live-demo script for the ShopScale
+premium saree e-commerce prototype.
+
+
+1. OPENING - WHAT IS SHOP SCALE?
+---------------------------------
+
+"ShopScale is a premium saree commerce platform designed to connect a
+beautiful customer shopping experience with an operations-focused admin
+console.
+
+The customer can discover sarees by region, variety, fabric, colour, craft
+technique, occasion and price. The admin can manage products, inventory,
+orders, imports, crawler jobs and infrastructure experiments.
+
+The important part of this prototype is that it is not only a storefront. It
+also demonstrates how a production commerce system can use caching, rate
+limiting, asynchronous events, background workers and data-import workflows."
+
+
+2. COMPLETE PRODUCT FLOW
+------------------------
+
+Customer journey:
+
+1. The customer opens the storefront.
+2. The home page presents curated saree collections and regional stories.
+3. The customer searches or browses the catalogue.
+4. They filter by:
+   - Region and state
+   - Saree variety
+   - Fabric and composition
+   - Weaving technique
+   - Colour, motif and border
+   - Occasion and availability
+   - Price range
+5. They open a product detail page with images, story, fabric, care and
+   artisan information.
+6. They add products to the cart or wishlist.
+7. They complete checkout and receive an order reference.
+8. The order can be tracked from the order tracking page.
+
+Admin journey:
+
+1. Admin signs in through the protected admin login.
+2. Admin views dashboard, products, inventory, orders and content.
+3. Admin imports saree images and metadata.
+4. Admin reviews imported images before creating products.
+5. Admin checks Redis/cache and rate-limit metrics.
+6. Admin publishes a test asynchronous event.
+7. Admin starts a crawler job for an approved public source.
+8. Admin observes system health and performance experiments.
+
+
+3. HIGH-LEVEL ARCHITECTURE
+--------------------------
+
+Frontend:
+  React + TypeScript + Vite + Tailwind CSS
+
+Backend:
+  FastAPI + Pydantic + SQLAlchemy
+
+Database:
+  PostgreSQL in production
+
+Cache and infrastructure:
+  Redis for cache/rate-limit support and Celery transport
+
+Background processing:
+  Celery worker for crawler and notification tasks
+
+Event workflow:
+  Kafka-style event topics are demonstrated in the System Design Lab.
+  The current browser demo uses an EventBus to model Kafka behavior. The
+  backend also exposes admin event monitoring endpoints.
+
+Production deployment:
+  Docker Compose runs PostgreSQL, Redis, FastAPI, Celery worker and Nginx.
+  Nginx serves the frontend and proxies /api/ and /uploads/ to the API.
+
+
+4. HOW THE FRONTEND CONNECTS TO THE BACKEND
+--------------------------------------------
+
+When VITE_API_BASE_URL is empty, the prototype can run in local demo mode.
+The browser uses seeded product data and in-browser simulations.
+
+When VITE_API_BASE_URL is configured, services call the backend API.
+
+Example Vercel environment variable:
+
+  VITE_API_BASE_URL=https://your-backend-domain.com/api/v1
+
+The frontend stores the JWT after login and automatically sends:
+
+  Authorization: Bearer <access-token>
+
+The backend validates the token and checks the user's role before allowing
+admin operations.
+
+For the deployed frontend:
+
+  Frontend URL:
+    https://popps-zeta.vercel.app
+
+The backend must allow this origin:
+
+  ALLOWED_ORIGINS=https://popps-zeta.vercel.app
+
+
+5. REDIS - WHAT IT DOES
+-----------------------
+
+"Redis is used because some operations should be much faster than repeatedly
+querying the database. It is an in-memory data store, so it is useful for
+short-lived and frequently accessed information."
+
+In this project Redis has three important roles:
+
+1. Cache
+   Frequently requested catalogue results can be cached.
+
+2. Rate-limit storage
+   Request counters and sliding-window data can be shared between API worker
+   processes when Redis is available.
+
+3. Celery broker and result backend
+   Background jobs use Redis channels/databases for task delivery and result
+   tracking.
+
+The production compose configuration separates the Redis databases:
+
+  redis://redis:6379/0  - application/cache and rate-limit usage
+  redis://redis:6379/1  - Celery broker
+  redis://redis:6379/2  - Celery task results
+
+
+6. CACHE-ASIDE FLOW - WHERE DOES A CACHE HIT HAPPEN?
+----------------------------------------------------
+
+The cache-aside pattern works like this:
+
+1. A customer requests a product list.
+2. The service creates a stable cache key from the query.
+   Example:
+     list:{"sort":"recommended","page":1}
+3. The service checks the cache first.
+4. If the key exists and has not expired:
+   - This is a CACHE HIT.
+   - The cached result is returned quickly.
+   - The database is not queried for that request.
+5. If the key does not exist:
+   - This is a CACHE MISS.
+   - The service reads/calculates the result from the data source.
+   - The result is stored in the cache with a TTL.
+   - The result is returned to the customer.
+
+In the admin Redis & Rate Limiter page:
+
+1. Open the storefront in another tab.
+2. Open Admin > Redis & Rate Limiter.
+3. Search or browse the same product list twice.
+4. The first request appears as MISS / slower response.
+5. The repeated request appears as HIT / faster response.
+6. The page shows:
+   - Hit ratio
+   - Hits and misses
+   - Bypassed requests
+   - Current cached keys
+   - TTL
+   - Response-time chart
+
+Cache invalidation:
+
+When product or inventory data changes, related keys must be invalidated.
+For example:
+
+  list:*       invalidates catalogue list results
+  product:*    invalidates product detail results
+  related:*    invalidates related-product results
+
+This prevents stale stock or product information from remaining visible.
+
+The admin lab also demonstrates:
+
+  - Bypass cache
+  - Invalidate listing keys
+  - Invalidate product keys
+  - Flush all simulated cache entries
+  - Compare 25 cached requests with 25 uncached requests
+
+Presentation sentence:
+
+"The cache is not the source of truth. The database remains the source of
+truth. Redis only accelerates repeated reads, and invalidation keeps cached
+data consistent after writes."
+
+
+7. RATE LIMITING
+----------------
+
+Rate limiting protects the API from accidental request bursts, bots and
+abusive traffic.
+
+The backend middleware:
+
+1. Identifies the client using the request address and forwarded headers.
+2. Separates authentication routes from normal API routes.
+3. Applies a stricter limit to login and registration.
+4. Tracks requests using a Redis sliding window.
+5. Falls back to in-memory tracking if Redis is temporarily unavailable.
+6. Returns HTTP 429 when the limit is exceeded.
+7. Sends useful headers:
+   - Retry-After
+   - X-RateLimit-Limit
+   - X-RateLimit-Remaining
+   - X-RateLimit-Reset
+
+Configured production examples:
+
+  RATE_LIMIT_DEFAULT=100/minute
+  RATE_LIMIT_AUTH=10/minute
+
+The browser lab has a token-bucket model for visual demonstration:
+
+  - Burst capacity controls the number of immediate requests.
+  - Refill rate controls how quickly capacity returns.
+  - Allowed and blocked requests are shown on a timeline.
+
+Live demonstration:
+
+1. Open Admin > Redis & Rate Limiter.
+2. Set a small burst capacity.
+3. Run the burst test.
+4. Explain that successful calls consume tokens.
+5. Once tokens are exhausted, calls are blocked with a 429-style result.
+6. Wait for refill and show that requests become available again.
+
+Presentation sentence:
+
+"Rate limiting is a reliability feature, not only a security feature. It
+protects the database and keeps the storefront responsive for legitimate
+customers."
+
+
+8. KAFKA-STYLE EVENT PROCESSING
+-------------------------------
+
+The event pipeline separates the action that starts a workflow from the
+services that react to it.
+
+Example order flow:
+
+  orders.created
+        |
+        v
+  inventory.reserved
+        |
+        v
+  notifications.requested
+        |
+        v
+  orders.status-updated
+        |
+        v
+  analytics.recorded
+
+Example explanation:
+
+"When an order is created, the checkout request should not need to perform
+every downstream operation synchronously. An event is published, and separate
+consumers can reserve inventory, send notifications, update order status and
+record analytics."
+
+Topics and consumers:
+
+  orders.created
+    inventory service and notification service
+
+  inventory.reserved
+    order-status service
+
+  notifications.requested
+    mailer and SMS services
+
+  orders.status-updated
+    analytics and customer-feed services
+
+Important reliability features:
+
+1. Consumer groups
+   Different consumers can independently process the same business event.
+
+2. Idempotency
+   The event key, normally the order reference, prevents duplicate work.
+   Replaying the same event demonstrates that an already processed event is
+   skipped.
+
+3. Retries
+   Temporary failures are retried with exponential backoff.
+
+4. Dead-letter queue
+   If the maximum number of attempts is reached, the event is moved to the
+   DLQ for investigation instead of being silently lost.
+
+Live demonstration:
+
+1. Open Admin > Kafka Events.
+2. Click "Publish test orders.created".
+3. Watch the event move from queued to processing to processed.
+4. Adjust the transient failure rate.
+5. Show retrying events.
+6. Replay an event and show duplicate/idempotency handling.
+7. If the maximum attempts are exceeded, explain the DLQ row.
+
+Important prototype note:
+
+"The browser System Design Lab uses an EventBus simulation so the behavior can
+be demonstrated without exposing broker credentials or requiring Kafka in the
+browser. In a production deployment, Kafka or another broker would run as a
+server-side infrastructure component, never in the browser."
+
+
+9. WEB CRAWLER
+--------------
+
+The crawler is designed for approved public partner pages only.
+
+The safe crawler flow is:
+
+1. Admin enters a valid HTTP or HTTPS seed URL.
+2. The system checks robots.txt.
+3. If crawling is disallowed, the job is blocked and no pages are fetched.
+4. If allowed, the job is queued for processing.
+5. The worker fetches the page with timeouts and no automatic redirect chain.
+6. Basic product information is extracted.
+7. Discovered items are placed into a pending-review queue.
+8. Admin approves or rejects the extracted items.
+9. Only approved metadata is eligible for import.
+
+Crawler safeguards:
+
+  - HTTP/HTTPS validation
+  - robots.txt respect
+  - request throttling
+  - URL deduplication
+  - product deduplication
+  - manual review before import
+  - SSRF/private-network protections in the backend crawler design
+  - no automatic trust of scraped descriptions or provenance claims
+
+Live demonstration:
+
+1. Open Admin > Web Crawler.
+2. Enter an approved public test URL.
+3. Show the robots.txt check.
+4. Show the queued/running/completed state.
+5. Explain discovered, processed, failed, duplicate and pending-review
+   counters.
+6. Approve metadata only after manual review.
+
+Important content rule:
+
+"The crawler does not mean that every scraped image or description can be
+used commercially. Copyright, licensing, privacy and partner permission still
+need to be checked before publishing content."
+
+
+10. SAREE IMAGE AND DATA IMPORTER
+---------------------------------
+
+The importer handles a ZIP of images and optional CSV or JSON metadata.
+
+Import flow:
+
+1. Upload ZIP and optional metadata.
+2. Extract images into an isolated import directory.
+3. Validate extension, file size, image dimensions and image integrity.
+4. Calculate hashes to identify duplicate images.
+5. Match metadata to images by filename.
+6. Show a preview gallery.
+7. Allow admin edits and review status changes.
+8. Approve valid items.
+9. Commit approved items as draft products.
+10. Publish only after product quality and content review.
+
+Supported image formats:
+
+  JPG, JPEG, PNG, WEBP and GIF
+
+The importer records:
+
+  - Original filename
+  - Image URL
+  - File hash
+  - Dimensions and size
+  - Product name
+  - Category
+  - Colour
+  - Fabric
+  - Region
+  - Technique
+  - Review status
+  - Duplicate information
+
+Presentation sentence:
+
+"The import pipeline separates ingestion from publication. This protects the
+storefront from corrupt images, duplicates, incomplete metadata and
+unverified claims."
+
+
+11. AUTOCOMPLETE AND SEARCH
+---------------------------
+
+The header search provides fast discovery before the customer submits a full
+search.
+
+Autocomplete behavior:
+
+1. Customer types a term such as:
+   - banarasi
+   - silk
+   - handloom
+   - bridal
+2. The search service reads the catalogue vocabulary.
+3. It searches product names, varieties, aliases, states, fabrics, techniques,
+   occasions and colours.
+4. It displays matching product suggestions and useful search terms.
+5. Recent searches are stored locally for convenience.
+6. If the spelling is close but not exact, the system calculates a
+   Levenshtein distance and proposes "Did you mean...?"
+
+Example:
+
+  Customer types: kanchipurm
+  Suggested correction: Kanchipuram
+
+Search matching:
+
+  - Case insensitive
+  - Accent normalized
+  - Token based
+  - Searches product text and tags
+  - Supports filters and price ranges
+  - Supports sorting by recommended, newest, price, popularity and rating
+
+Backend search:
+
+When the backend is configured, the product service sends the search query to
+the product search endpoint. The backend returns products, total count,
+facets, suggestions and cache metadata.
+
+Presentation sentence:
+
+"Autocomplete reduces the effort required to discover the right product, and
+the spelling-tolerant suggestion layer makes the catalogue friendly even when
+customers do not know the exact spelling of an Indian textile variety."
+
+
+12. ADMIN PRODUCT AND INVENTORY MANAGEMENT
+------------------------------------------
+
+The admin product workflow supports:
+
+  - Product creation and editing
+  - Product images
+  - Publication status
+  - Draft, review, published and archived states
+  - Stock quantity
+  - Low-stock thresholds
+  - Bulk status changes
+  - CSV export and import
+  - Audit entries
+
+Publication principle:
+
+"A product can exist in the admin catalogue without being visible to
+customers. Draft and in-review products remain hidden until an administrator
+publishes them."
+
+Inventory principle:
+
+"Stock updates must invalidate product and listing cache keys so customers do
+not continue seeing stale availability."
+
+
+13. SECURITY AND RELIABILITY
+----------------------------
+
+The prototype demonstrates:
+
+  - JWT authentication
+  - Role-based admin access
+  - Argon2 password hashing
+  - CORS origin restrictions
+  - Rate limiting
+  - Request IDs and timing headers
+  - Input validation with Pydantic
+  - Protected admin endpoints
+  - SSRF protections for crawler workflows
+  - Idempotency for order/event operations
+  - Database migrations with Alembic
+  - Health and readiness endpoints
+
+Health endpoints:
+
+  /api/v1/health
+    Basic process liveness.
+
+  /api/v1/ready
+    Database readiness and Redis availability checks.
+
+
+14. RECOMMENDED LIVE PRESENTATION ORDER
+---------------------------------------
+
+Use this sequence for a smooth 10-15 minute demonstration:
+
+1. Open the storefront homepage.
+2. Search for "silk" using the header autocomplete.
+3. Select a suggestion and apply region/fabric/price filters.
+4. Open a product detail page and add the product to cart.
+5. Explain the customer journey and catalogue data.
+6. Open Admin Login.
+7. Show the product and inventory sections.
+8. Open Redis & Rate Limiter.
+9. Browse the storefront twice:
+   - First request: cache MISS
+   - Second request: cache HIT
+10. Run cached versus uncached performance experiment.
+11. Run the rate-limit burst test and show blocked requests.
+12. Open Kafka Events.
+13. Publish orders.created.
+14. Demonstrate processing, retries and idempotent replay.
+15. Open Web Crawler.
+16. Explain robots.txt, throttling and manual review.
+17. Open Dataset Importer.
+18. Explain image validation, duplicate detection and draft creation.
+19. Finish with the production architecture and deployment plan.
+
+
+15. HONEST PROTOTYPE DISCLOSURE
+-------------------------------
+
+Use this wording if asked whether every infrastructure component is fully
+production-connected:
+
+"This is a working prototype with two modes. The production integration
+points are represented in the FastAPI backend, Docker deployment, Redis
+configuration, Celery worker and protected admin APIs. The System Design Lab
+also includes browser simulations for cache, rate limiting and Kafka-style
+events so the full behavior can be demonstrated instantly without requiring
+an operator to provision every infrastructure service locally.
+
+The simulation is intentionally labeled in the UI. It demonstrates the
+algorithm and user experience; the production deployment replaces those
+browser adapters with server-side Redis, broker and worker infrastructure."
+
+
+16. CLOSING STATEMENT
+---------------------
+
+"ShopScale combines the emotional experience of discovering Indian textiles
+with the operational discipline required for commerce at scale.
+
+The storefront focuses on discovery and trust. The admin console focuses on
+quality control and operations. Redis improves repeated reads, rate limiting
+protects the API, asynchronous events decouple order processing, the crawler
+and importer bring in new catalogue data safely, and autocomplete helps
+customers find the right tradition even when they use an incomplete or
+misspelled search term.
+
+That combination is what makes this more than a static product catalogue: it
+is a demonstrable commerce platform architecture."
+

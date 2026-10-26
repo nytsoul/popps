@@ -81,7 +81,7 @@ The repository includes a ready-to-use production Docker Compose stack in [`dock
 2. **Web Service**:
    - Root directory: `backend/`
    - Build command: `pip install -r requirements.txt`
-   - Start command: `alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4`
+   - Start command: `alembic upgrade head && python -m app.db.seed && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4`
    - Environment variables:
      - `DATABASE_URL`: Your PostgreSQL connection string
      - `REDIS_URL`: Your Redis connection string

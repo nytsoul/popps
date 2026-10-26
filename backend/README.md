@@ -63,10 +63,19 @@ python -m app.db.bootstrap_admin
 ### 7. Start the development server
 
 ```powershell
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 API docs available at: **http://localhost:8000/api/docs**
+
+If you run the command from the repository root instead of `backend`, use:
+
+```powershell
+python -m uvicorn app.main:app --app-dir backend --reload --port 8000
+```
+
+The `--app-dir backend` option is required from the repository root because
+the `app` Python package is located inside the `backend` directory.
 
 ### 8. Connect the frontend
 

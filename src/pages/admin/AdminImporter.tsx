@@ -36,6 +36,7 @@ import { Panel, btn, btnSolid } from "./AdminLayout";
 import { cn } from "../../utils/cn";
 
 import { API_BASE_URL } from "../../services/api";
+import { BACKEND_CONFIGURED } from "../../services/api";
 
 const API = API_BASE_URL.endsWith("/api/v1") || API_BASE_URL.endsWith("/api/v1/")
   ? API_BASE_URL.replace(/\/$/, "")
@@ -434,7 +435,63 @@ function ItemCard({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
+function FrontendOnlyImporter() {
+  const [fileName, setFileName] = useState("");
+  const [metadataName, setMetadataName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  return (
+    <div className="space-y-6 pb-16">
+      <header>
+        <h1 className="font-display text-3xl text-darkroast">Dataset Importer</h1>
+        <p className="mt-1 text-xs text-mutedbrown">
+          Frontend-only demo mode. Backend import storage is disabled, so files stay in this browser and are not uploaded.
+        </p>
+      </header>
+      <Panel title="Prepare a local import" subtitle="Use this flow to demonstrate the import workflow without a backend.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="border border-dashed border-sand p-5 text-xs text-mutedbrown">
+            <span className="font-semibold text-darkroast">Saree image archive</span>
+            <input
+              type="file"
+              accept=".zip"
+              className="mt-3 block w-full text-xs"
+              onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+            />
+            {fileName && <span className="mt-2 block text-olivesage">{fileName}</span>}
+          </label>
+          <label className="border border-dashed border-sand p-5 text-xs text-mutedbrown">
+            <span className="font-semibold text-darkroast">Optional metadata</span>
+            <input
+              type="file"
+              accept=".csv,.json"
+              className="mt-3 block w-full text-xs"
+              onChange={(event) => setMetadataName(event.target.files?.[0]?.name ?? "")}
+            />
+            {metadataName && <span className="mt-2 block text-olivesage">{metadataName}</span>}
+          </label>
+        </div>
+        <button
+          type="button"
+          className={`${btnSolid} mt-4`}
+          disabled={!fileName}
+          onClick={() => setSubmitted(true)}
+        >
+          <Upload className="h-3.5 w-3.5" aria-hidden /> Prepare local preview
+        </button>
+        {submitted && (
+          <div className="mt-4 border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800" role="status">
+            Local preview prepared for <strong>{fileName}</strong>. Connect the backend to validate images, deduplicate files, review metadata and commit products.
+          </div>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
 export default function AdminImporter() {
+  if (!BACKEND_CONFIGURED) return <FrontendOnlyImporter />;
+
   const [step, setStep] = useState<"upload" | "scan" | "gallery" | "report">("upload");
   const [jobs, setJobs] = useState<ImportJob[]>([]);
   const [activeJob, setActiveJob] = useState<ImportJob | null>(null);
