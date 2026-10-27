@@ -42,11 +42,17 @@ configure_logging()
 logger = get_logger(__name__)
 
 
+import asyncio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("ShopScale API starting", env=settings.app_env)
-    yield
-    logger.info("ShopScale API shutting down")
+    try:
+        yield
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        pass
+    finally:
+        logger.info("ShopScale API shutting down")
 
 
 def create_app() -> FastAPI:

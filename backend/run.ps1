@@ -14,5 +14,6 @@ if (-not (Test-Path $PythonExe)) {
 Write-Host "Starting ShopScale FastAPI backend server..." -ForegroundColor Green
 Write-Host "Using Python: $PythonExe" -ForegroundColor Cyan
 Write-Host "Docs: http://127.0.0.1:8000/docs" -ForegroundColor Yellow
+Write-Host "Server will keep running here. Keep this window open. Press Ctrl+C to stop." -ForegroundColor Gray
 
-& $PythonExe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+& $PythonExe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app
